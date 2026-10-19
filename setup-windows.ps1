@@ -64,4 +64,9 @@ Write-Host "`n=== 5. GitHub ===" -ForegroundColor Cyan
 gh auth status 2>$null
 if ($LASTEXITCODE -ne 0) { Write-Host "Pas connecte. Lance :  gh auth login   (GitHub.com > HTTPS > Login with a web browser)" -ForegroundColor Yellow }
 
+Write-Host "`n=== 6. Dossier fiches-app ===" -ForegroundColor Cyan
+$App = Join-Path $HOME "fiches-app"
+if (Test-Path (Join-Path $App ".git")) { git -C $App pull -q; Write-Host "OK      $App (a jour)" }
+else { git clone -q https://github.com/elliotttt606/fiches-revision.git $App; Write-Host "OK      $App" }
+
 Write-Host "`nTermine. Copie tout ce qui est affiche ci-dessus et renvoie-le a Claude." -ForegroundColor Cyan

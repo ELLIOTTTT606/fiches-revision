@@ -17,7 +17,7 @@ Safari > Partager > Sur l'écran d'accueil. La **génération ne marche pas sur 
 
 ## Mettre à jour
 
-Modifier `index.html`, puis :
+Les scripts clonent le dépôt dans `~/fiches-app` (ton dossier utilisateur). Modifier `index.html` dans ce dossier, puis :
 
 ```
 git add -A
