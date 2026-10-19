@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fiches</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fiches">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#DCE3EA">
+<style>
+  :root {
+    --bg: #DCE3EA;
+    --card: #E3EEFA;
+    --card-line: #9CC3E6;
+    --margin: #D9534F;
+    --ink: #1F2A36;
+    --muted: #5B6B7B;
+    --accent: #2F6FB0;
+    --ok: #2E8B57;
+    --ko: #C0392B;
+    --shadow: 0 2px 0 #B7C2CE, 0 6px 16px rgba(31, 42, 54, .08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: env(safe-area-inset-top) 16px calc(24px + env(safe-area-inset-bottom));
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    max-width: 760px; margin: 0 auto; padding: 16px 0 8px;
+  }
+  header h1 { font-size: 22px; margin: 0; cursor: pointer; }
+  header nav { display: flex; gap: 8px; }
+  h2 { font-size: 19px; margin: 20px 0 10px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .hidden { display: none !important; }
+
+  button, .btn {
+    font: inherit; font-size: 15px; border: 1px solid #AEBBC8; background: #fff; color: var(--ink);
+    padding: 8px 14px; border-radius: 10px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { color: var(--ko); }
+  button.ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+  button.ko { background: var(--ko); border-color: var(--ko); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  input[type=text], input[type=url], textarea, select {
+    font: inherit; width: 100%; padding: 10px 12px; border: 1px solid #AEBBC8; border-radius: 10px; background: #fff; color: var(--ink);
+  }
+  textarea { min-height: 260px; resize: vertical; }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; }
+
+  /* Fiche bristol : fond bleu clair, lignes, marge rouge */
+  .bristol {
+    position: relative; background-color: var(--card); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 16px 16px 16px 44px; margin: 12px 0;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--card-line) 27px, var(--card-line) 28px);
+    background-position: 0 40px;
+  }
+  .bristol::before {
+    content: ""; position: absolute; top: 0; bottom: 0; left: 30px; width: 2px; background: var(--margin);
+  }
+  .panel { background: #F4F7FA; border-radius: 12px; box-shadow: var(--shadow); padding: 16px; margin: 12px 0; }
+
+  .course { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .course h3 { margin: 0; font-size: 17px; }
+  .badge { display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 999px; background: #fff; border: 1px solid #C9D3DD; }
+  .badge.due { background: #FFF4E5; border-color: #F0B464; }
+
+  .qa-edit { display: grid; gap: 6px; }
+  .qa-edit textarea { min-height: 0; }
+  .qa-edit .row { justify-content: flex-end; }
+
+  #review-card { min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; }
+  #review-card .q { font-size: 20px; font-weight: 600; white-space: pre-wrap; }
+  #review-card .a { font-size: 18px; margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--card-line); white-space: pre-wrap; }
+  #review-card .src { font-size: 13px; color: var(--muted); }
+  .progress { height: 6px; background: #C9D3DD; border-radius: 3px; overflow: hidden; margin: 8px 0; }
+  .progress > div { height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+
+  #status { white-space: pre-wrap; }
+  #status.error { color: var(--ko); }
+  #toast {
+    position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 15px; max-width: 90vw;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1 data-go="home">Fiches</h1>
+  <nav>
+    <button data-go="new" class="primary">+ Cours</button>
+    <button data-go="data">Données</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Accueil -->
+  <section id="view-home">
+    <div class="panel row" style="justify-content: space-between">
+      <div><strong id="due-total">0</strong> fiche(s) à réviser aujourd'hui</div>
+      <button id="review-all" class="primary">Réviser tout</button>
+    </div>
+    <div id="courses"></div>
+    <p id="empty" class="muted">Aucun cours pour l'instant. Clique sur « + Cours », colle ton cours et laisse le modèle générer les questions.</p>
+  </section>
+
+  <!-- Nouveau cours -->
+  <section id="view-new" class="hidden">
+    <h2 id="new-heading">Nouveau cours</h2>
+    <label for="new-title">Titre</label>
+    <input id="new-title" type="text" placeholder="Ex. : Supply chain aéronautique — séance 3">
+    <label for="new-text">Texte du cours</label>
+    <textarea id="new-text" placeholder="Colle ici le texte du cours (notes, slides copiées, poly…)"></textarea>
+    <label for="new-count">Questions par tranche de texte (~4 000 caractères)</label>
+    <select id="new-count">
+      <option value="5">5</option>
+      <option value="8" selected>8</option>
+      <option value="12">12</option>
+    </select>
+    <div class="row" style="margin-top: 16px">
+      <button id="generate" class="primary">Générer les questions</button>
+      <button id="cancel-gen" class="hidden">Annuler</button>
+    </div>
+    <div class="progress hidden" id="gen-progress"><div></div></div>
+    <p id="status" class="muted"></p>
+  </section>
+
+  <!-- Détail d'un cours -->
+  <section id="view-course" class="hidden">
+    <h2 id="course-title"></h2>
+    <div class="row">
+      <button id="course-review" class="primary">Réviser ce cours</button>
+      <button id="course-more">Générer d'autres questions</button>
+      <button id="course-add">+ Question manuelle</button>
+      <button id="course-delete" class="danger">Supprimer le cours</button>
+    </div>
+    <div id="cards"></div>
+  </section>
+
+  <!-- Révision -->
+  <section id="view-review" class="hidden">
+    <div class="row" style="justify-content: space-between">
+      <span id="review-count" class="muted"></span>
+      <button data-go="home">Terminer</button>
+    </div>
+    <div class="progress"><div id="review-bar"></div></div>
+    <div id="review-card" class="bristol">
+      <div>
+        <div class="q" id="review-q"></div>
+        <div class="a hidden" id="review-a"></div>
+      </div>
+      <div class="src" id="review-src"></div>
+    </div>
+    <div class="row" id="review-show-row"><button id="review-show" class="primary">Voir la réponse</button></div>
+    <div class="row hidden" id="review-grade-row">
+      <button id="review-ko" class="ko">À revoir</button>
+      <button id="review-ok" class="ok">Je savais</button>
+    </div>
+    <p id="review-done" class="hidden">Terminé pour aujourd'hui. Reviens demain : les fiches ratées reviendront plus vite que les autres.</p>
+  </section>
+
+  <!-- Données et réglages -->
+  <section id="view-data" class="hidden">
+    <h2>Sauvegarde</h2>
+    <div class="panel">
+      <p class="muted" style="margin-top: 0">Les fiches sont stockées dans ce navigateur, à cette adresse. Pour passer sur l'iPhone : sauvegarde ici, envoie le fichier par AirDrop, puis restaure sur le téléphone.</p>
+      <div class="row">
+        <button id="export" class="primary">Sauvegarder mes données</button>
+        <button id="import">Restaurer une sauvegarde</button>
+        <input id="import-file" type="file" accept=".json,application/json" class="hidden">
+      </div>
+    </div>
+    <h2>Ollama (génération des questions)</h2>
+    <div class="panel">
+      <label for="set-url" style="margin-top: 0">Adresse</label>
+      <input id="set-url" type="url">
+      <label for="set-model">Modèle</label>
+      <input id="set-model" type="text">
+      <div class="row" style="margin-top: 12px">
+        <button id="set-save">Enregistrer</button>
+        <button id="set-test">Tester la connexion</button>
+      </div>
+      <p id="set-status" class="muted"></p>
+    </div>
+    <h2>Zone dangereuse</h2>
+    <div class="panel"><button id="wipe" class="danger">Tout effacer</button></div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Stockage ----------
+  const KEY = 'fiches-data-v1';
+  const DEFAULTS = { url: 'http://localhost:11434', model: 'qwen2.5:7b' };
+  const DAY = 86400000;
+  // Intervalles de la boîte de Leitner, en jours (boîte 1 = à revoir aujourd'hui).
+  const INTERVALS = [0, 0, 1, 3, 7, 16, 35];
+  const CHUNK = 4000;
+
+  let data = load();
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY));
+      if (d && Array.isArray(d.courses)) {
+        d.settings = Object.assign({}, DEFAULTS, d.settings);
+        return d;
+      }
+    } catch (e) { /* données illisibles : on repart à zéro */ }
+    return { version: 1, courses: [], settings: Object.assign({}, DEFAULTS) };
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); }
+    catch (e) { toast('Impossible d\'enregistrer : stockage du navigateur plein ?'); }
+  }
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const isDue = c => (c.due || 0) <= startOfToday() + DAY - 1;
+  const course = id => data.courses.find(c => c.id === id);
+
+  // ---------- Utilitaires d'interface ----------
+  const $ = id => document.getElementById(id);
+  function el(tag, attrs = {}, ...children) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === 'class') e.className = v;
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v);
+    }
+    for (const c of children) e.append(c);
+    return e;
+  }
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  const VIEWS = ['home', 'new', 'course', 'review', 'data'];
+  let currentCourseId = null;
+  function go(view) {
+    for (const v of VIEWS) $('view-' + v).classList.toggle('hidden', v !== view);
+    if (view === 'home') renderHome();
+    if (view === 'data') renderData();
+    window.scrollTo(0, 0);
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-go]');
+    if (!t) return;
+    if (t.dataset.go === 'new') openNew(null);
+    else go(t.dataset.go);
+  });
+
+  // ---------- Accueil ----------
+  function renderHome() {
+    const list = $('courses');
+    list.replaceChildren();
+    let dueTotal = 0;
+    const sorted = [...data.courses].sort((a, b) => b.createdAt - a.createdAt);
+    for (const c of sorted) {
+      const due = c.cards.filter(isDue).length;
+      dueTotal += due;
+      list.append(el('div', { class: 'bristol course' },
+        el('div', {},
+          el('h3', {}, c.title),
+          el('span', { class: 'badge' }, c.cards.length + ' fiche(s)'), ' ',
+          due ? el('span', { class: 'badge due' }, due + ' à réviser') : ''
+        ),
+        el('div', { class: 'row' },
+          el('button', { class: 'primary', onclick: () => startReview(c.cards.filter(isDue), c) , ...(due ? {} : { disabled: '' }) }, 'Réviser'),
+          el('button', { onclick: () => openCourse(c.id) }, 'Voir')
+        )
+      ));
+    }
+    $('due-total').textContent = dueTotal;
+    $('review-all').disabled = dueTotal === 0;
+    $('empty').classList.toggle('hidden', data.courses.length > 0);
+  }
+  $('review-all').addEventListener('click', () => {
+    startReview(data.courses.flatMap(c => c.cards.filter(isDue)));
+  });
+
+  // ---------- Génération via Ollama ----------
+  function chunkText(text) {
+    const paras = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    const chunks = [];
+    let cur = '';
+    for (const p of paras) {
+      if (cur && cur.length + p.length > CHUNK) { chunks.push(cur); cur = ''; }
+      if (p.length > CHUNK) {
+        for (let i = 0; i < p.length; i += CHUNK) chunks.push(p.slice(i, i + CHUNK));
+      } else {
+        cur += (cur ? '\n\n' : '') + p;
+      }
+    }
+    if (cur) chunks.push(cur);
+    return chunks;
+  }
+
+  function buildPrompt(text, n, existing) {
+    const avoid = existing.length
+      ? '\nNe reprends pas ces questions déjà posées :\n- ' + existing.slice(0, 40).join('\n- ') + '\n'
+      : '';
+    return `Tu es un professeur exigeant qui prépare des fiches de révision.
+À partir de l'extrait de cours ci-dessous, rédige ${n} questions de révision avec leur réponse.
+Règles :
+- Varie les types : définition, mécanisme (pourquoi/comment), exemple concret, comparaison, chiffre clé.
+- Une question = une seule idée. Réponse courte (1 à 3 phrases), exacte, tirée uniquement du texte.
+- N'invente rien qui ne figure pas dans le texte.
+- Écris dans la langue du cours.${avoid}
+Réponds UNIQUEMENT avec du JSON valide de la forme :
+{"questions":[{"question":"...","reponse":"..."}]}
+
+Extrait du cours :
+"""
+${text}
+"""`;
+  }
+
+  function parseQuestions(content) {
+    let obj;
+    try { obj = JSON.parse(content); }
+    catch (e) {
+      const m = content.match(/\{[\s\S]*\}/);
+      if (!m) throw new Error('Réponse du modèle illisible.');
+      obj = JSON.parse(m[0]);
+    }
+    const arr = Array.isArray(obj) ? obj : (obj.questions || obj.fiches || []);
+    return arr
+      .map(x => ({
+        q: String(x.question || x.q || '').trim(),
+        a: String(x.reponse || x['réponse'] || x.answer || x.a || '').trim()
+      }))
+      .filter(x => x.q && x.a);
+  }
+
+  async function askOllama(prompt, signal) {
+    const { url, model } = data.settings;
+    let res;
+    try {
+      res = await fetch(url.replace(/\/+$/, '') + '/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model, stream: false, format: 'json',
+          options: { temperature: 0.3 },
+          messages: [{ role: 'user', content: prompt }]
+        }),
+        signal
+      });
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      throw new Error(ollamaHelp());
+    }
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      if (res.status === 404 && /model/i.test(body)) throw new Error(`Modèle « ${model} » absent. Dans un terminal : ollama pull ${model}`);
+      throw new Error(`Ollama a répondu ${res.status}. ${body.slice(0, 200)}`);
+    }
+    const json = await res.json();
+    return parseQuestions((json.message && json.message.content) || '');
+  }
+
+  function ollamaHelp() {
+    return 'Impossible de joindre Ollama à ' + data.settings.url + '.\n' +
+      '• Ollama est-il lancé sur ce PC ?\n' +
+      '• OLLAMA_ORIGINS autorise-t-il cette adresse (' + location.origin + ') ?\n' +
+      '• Si le navigateur demande l\'accès au réseau local, accepte.\n' +
+      'Sur iPhone, la génération est impossible : Ollama tourne sur le PC.';
+  }
+
+  let genController = null;
+  let genTargetId = null;
+
+  function openNew(courseId) {
+    genTargetId = courseId;
+    const c = courseId && course(courseId);
+    $('new-heading').textContent = c ? 'Compléter : ' + c.title : 'Nouveau cours';
+    $('new-title').value = c ? c.title : '';
+    $('new-title').disabled = !!c;
+    $('new-text').value = c ? c.text : '';
+    setStatus('');
+    go('new');
+  }
+
+  function setStatus(msg, isError) {
+    $('status').textContent = msg;
+    $('status').classList.toggle('error', !!isError);
+  }
+
+  $('generate').addEventListener('click', async () => {
+    const title = $('new-title').value.trim() || 'Cours du ' + new Date().toLocaleDateString('fr-FR');
+    const text = $('new-text').value.trim();
+    const n = parseInt($('new-count').value, 10);
+    if (text.length < 80) { setStatus('Colle un texte de cours un peu plus long.', true); return; }
+
+    const chunks = chunkText(text);
+    let c = genTargetId && course(genTargetId);
+    const isNew = !c;
+    if (!c) c = { id: uid(), title, text, createdAt: Date.now(), cards: [] };
+    else c.text = text;
+
+    genController = new AbortController();
+    const timeout = setTimeout(() => genController.abort(), 10 * 60000);
+    $('generate').disabled = true;
+    $('cancel-gen').classList.remove('hidden');
+    $('gen-progress').classList.remove('hidden');
+    const bar = $('gen-progress').firstElementChild;
+    let added = 0;
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        setStatus(`Génération… tranche ${i + 1}/${chunks.length} (compter 20 s à 1 min par tranche)`);
+        bar.style.width = (i / chunks.length * 100) + '%';
+        const qs = await askOllama(buildPrompt(chunks[i], n, c.cards.map(x => x.q)), genController.signal);
+        const known = new Set(c.cards.map(x => x.q.toLowerCase()));
+        for (const x of qs) {
+          if (known.has(x.q.toLowerCase())) continue;
+          c.cards.push({ id: uid(), q: x.q, a: x.a, box: 1, due: 0, seen: 0, ok: 0 });
+          known.add(x.q.toLowerCase());
+          added++;
+        }
+        if (isNew && !data.courses.includes(c) && c.cards.length) data.courses.push(c);
+        save();
+      }
+      bar.style.width = '100%';
+      if (!added) throw new Error('Le modèle n\'a renvoyé aucune question exploitable. Réessaie.');
+      toast(added + ' question(s) ajoutée(s)');
+      openCourse(c.id);
+    } catch (e) {
+      if (e.name === 'AbortError') setStatus(added ? `Interrompu. ${added} question(s) gardée(s).` : 'Interrompu.', !added);
+      else setStatus(e.message + (added ? `\n(${added} question(s) déjà gardée(s).)` : ''), true);
+    } finally {
+      clearTimeout(timeout);
+      genController = null;
+      $('generate').disabled = false;
+      $('cancel-gen').classList.add('hidden');
+      $('gen-progress').classList.add('hidden');
+    }
+  });
+  $('cancel-gen').addEventListener('click', () => genController && genController.abort());
+
+  // ---------- Détail d'un cours ----------
+  function openCourse(id) {
+    currentCourseId = id;
+    renderCourse();
+    go('course');
+  }
+  function renderCourse() {
+    const c = course(currentCourseId);
+    if (!c) { go('home'); return; }
+    $('course-title').textContent = c.title;
+    const box = $('cards');
+    box.replaceChildren();
+    if (!c.cards.length) box.append(el('p', { class: 'muted' }, 'Aucune question.'));
+    c.cards.forEach((card, i) => {
+      const q = el('textarea', { rows: '2', 'aria-label': 'Question ' + (i + 1) }); q.value = card.q;
+      const a = el('textarea', { rows: '3', 'aria-label': 'Réponse ' + (i + 1) }); a.value = card.a;
+      const onChange = () => { card.q = q.value.trim(); card.a = a.value.trim(); save(); };
+      q.addEventListener('change', onChange);
+      a.addEventListener('change', onChange);
+      box.append(el('div', { class: 'bristol qa-edit' },
+        el('div', { class: 'muted' }, `Q${i + 1} · boîte ${card.box} · ${card.ok}/${card.seen} réussies`),
+        q, a,
+        el('div', { class: 'row' }, el('button', { class: 'danger', onclick: () => {
+          if (!confirm('Supprimer cette question ?')) return;
+          c.cards.splice(c.cards.indexOf(card), 1); save(); renderCourse();
+        } }, 'Supprimer'))
+      ));
+    });
+  }
+  $('course-review').addEventListener('click', () => {
+    const c = course(currentCourseId);
+    const due = c.cards.filter(isDue);
+    startReview(due.length ? due : c.cards, c);
+  });
+  $('course-more').addEventListener('click', () => openNew(currentCourseId));
+  $('course-add').addEventListener('click', () => {
+    const c = course(currentCourseId);
+    c.cards.push({ id: uid(), q: 'Nouvelle question', a: 'Réponse', box: 1, due: 0, seen: 0, ok: 0 });
+    save(); renderCourse();
+    const tas = $('cards').querySelectorAll('textarea');
+    tas[tas.length - 2].focus(); tas[tas.length - 2].select();
+  });
+  $('course-delete').addEventListener('click', () => {
+    const c = course(currentCourseId);
+    if (!confirm(`Supprimer « ${c.title} » et ses ${c.cards.length} fiche(s) ?`)) return;
+    data.courses = data.courses.filter(x => x !== c); save(); go('home');
+  });
+
+  // ---------- Révision (boîtes de Leitner) ----------
+  let queue = [], qIndex = 0, reviewTotal = 0;
+  function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function startReview(cards) {
+    if (!cards.length) { toast('Rien à réviser.'); return; }
+    queue = shuffle([...cards]); qIndex = 0; reviewTotal = queue.length;
+    $('review-card').classList.remove('hidden');
+    $('review-done').classList.add('hidden');
+    go('review');
+    showCard();
+  }
+  function showCard() {
+    if (qIndex >= queue.length) {
+      $('review-card').classList.add('hidden');
+      $('review-show-row').classList.add('hidden');
+      $('review-grade-row').classList.add('hidden');
+      $('review-done').classList.remove('hidden');
+      $('review-count').textContent = reviewTotal + ' fiche(s) révisée(s)';
+      $('review-bar').style.width = '100%';
+      return;
+    }
+    const card = queue[qIndex];
+    const owner = data.courses.find(c => c.cards.includes(card));
+    $('review-q').textContent = card.q;
+    $('review-a').textContent = card.a;
+    $('review-a').classList.add('hidden');
+    $('review-src').textContent = owner ? owner.title : '';
+    $('review-show-row').classList.remove('hidden');
+    $('review-grade-row').classList.add('hidden');
+    $('review-count').textContent = `Fiche ${Math.min(qIndex + 1, queue.length)} / ${queue.length}`;
+    $('review-bar').style.width = (qIndex / queue.length * 100) + '%';
+  }
+  function reveal() {
+    $('review-a').classList.remove('hidden');
+    $('review-show-row').classList.add('hidden');
+    $('review-grade-row').classList.remove('hidden');
+  }
+  function grade(ok) {
+    const card = queue[qIndex];
+    card.seen++;
+    if (ok) {
+      card.ok++;
+      card.box = Math.min(card.box + 1, INTERVALS.length - 1);
+      card.due = startOfToday() + INTERVALS[card.box] * DAY;
+    } else {
+      card.box = 1;
+      card.due = 0;
+      queue.push(card); // revient en fin de séance
+    }
+    save();
+    qIndex++;
+    showCard();
+  }
+  $('review-show').addEventListener('click', reveal);
+  $('review-ok').addEventListener('click', () => grade(true));
+  $('review-ko').addEventListener('click', () => grade(false));
+  document.addEventListener('keydown', e => {
+    if ($('view-review').classList.contains('hidden') || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    const graded = !$('review-grade-row').classList.contains('hidden');
+    if (e.key === ' ' && !graded) { e.preventDefault(); reveal(); }
+    else if (graded && (e.key === 'ArrowRight' || e.key === '2')) grade(true);
+    else if (graded && (e.key === 'ArrowLeft' || e.key === '1')) grade(false);
+  });
+
+  // ---------- Données et réglages ----------
+  function renderData() {
+    $('set-url').value = data.settings.url;
+    $('set-model').value = data.settings.model;
+    $('set-status').textContent = '';
+  }
+  $('set-save').addEventListener('click', () => {
+    data.settings.url = $('set-url').value.trim() || DEFAULTS.url;
+    data.settings.model = $('set-model').value.trim() || DEFAULTS.model;
+    save(); toast('Réglages enregistrés');
+  });
+  $('set-test').addEventListener('click', async () => {
+    const out = $('set-status');
+    out.textContent = 'Test…';
+    const url = ($('set-url').value.trim() || DEFAULTS.url).replace(/\/+$/, '');
+    const model = $('set-model').value.trim() || DEFAULTS.model;
+    try {
+      const res = await fetch(url + '/api/tags');
+      const json = await res.json();
+      const names = (json.models || []).map(m => m.name);
+      out.textContent = names.some(n => n === model || n.startsWith(model + ':'))
+        ? `OK : Ollama répond et le modèle ${model} est installé.`
+        : `Ollama répond, mais ${model} est absent. Modèles installés : ${names.join(', ') || 'aucun'}.`;
+    } catch (e) {
+      out.textContent = ollamaHelp();
+    }
+  });
+
+  $('export').addEventListener('click', async () => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    const name = `fiches-sauvegarde-${stamp}.json`;
+    const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+    const file = new File([blob], name, { type: 'application/json' });
+    // Sur mobile / Mac : feuille de partage (AirDrop). Sinon téléchargement classique.
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /iPhone|iPad|Macintosh|Android/.test(navigator.userAgent) && 'ontouchend' in document) {
+      try { await navigator.share({ files: [file], title: 'Sauvegarde Fiches' }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = el('a', { href: URL.createObjectURL(blob), download: name });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('Sauvegarde téléchargée : ' + name);
+  });
+  $('import').addEventListener('click', () => $('import-file').click());
+  $('import-file').addEventListener('change', async e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || !Array.isArray(d.courses)) throw new Error();
+      const nCards = d.courses.reduce((s, c) => s + (c.cards || []).length, 0);
+      if (!confirm(`Restaurer ${d.courses.length} cours (${nCards} fiches) ? Les données actuelles de cet appareil seront remplacées.`)) return;
+      const keep = data.settings; // l'adresse d'Ollama reste propre à l'appareil
+      data = d;
+      data.settings = Object.assign({}, DEFAULTS, keep);
+      save(); toast('Sauvegarde restaurée'); go('home');
+    } catch (err) {
+      toast('Fichier invalide : ce n\'est pas une sauvegarde Fiches.');
+    }
+  });
+  $('wipe').addEventListener('click', () => {
+    if (!confirm('Effacer TOUS les cours et fiches de cet appareil ? Fais une sauvegarde avant.')) return;
+    data = { version: 1, courses: [], settings: data.settings };
+    save(); go('home');
+  });
+
+  go('home');
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+}
+</script>
+</body>
+</html>

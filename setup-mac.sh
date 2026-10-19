@@ -61,4 +61,9 @@ ACAO=$(curl -s -D - -o /dev/null -H "Origin: $TEST_ORIGIN" http://localhost:1143
 step "5. GitHub"
 gh auth status || printf "\033[33mPas connecté. Lance :  gh auth login   (GitHub.com > HTTPS > Login with a web browser)\033[0m\n"
 
+step "6. Dossier fiches-app"
+APP="$HOME/fiches-app"
+if [ -d "$APP/.git" ]; then git -C "$APP" pull -q && ok "$APP (à jour)"
+else git clone -q https://github.com/elliotttt606/fiches-revision.git "$APP" && ok "$APP"; fi
+
 printf "\nTerminé. Copie tout ce qui est affiché ci-dessus et renvoie-le à Claude.\n"
